@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from matplotlib.patches import Wedge
 import numpy as np
 
 
@@ -150,14 +151,24 @@ class punchingshear():
         
         fig, ax = plt.subplots()
         ax.plot([1,5,2],[2,3,4],color="cyan")
+        self.uoutshow(ax)
         ax.add_patch(Rectangle((-self.width/2, -self.hight/2), self.width, self.hight, color="yellow"))
         plt.xlabel("X-AXIS")
         plt.ylabel("Y-AXIS")
         plt.title("PLOT-1")
         plt.show()
+    
+    def uoutshow(self, ax):
+        d = self.effectivedepthcalulator()
+
+        fov = Wedge((self.width/2,self.hight/2), d, 0, 90, color="r", alpha=0.5)
+
+        ax.add_artist(fov)
+
 
     def uout(self):
         pass
+        
 
     def effectivedepthcalulator(self):
         maxRebarPerLayer = {} # {str(dia), layer}
@@ -172,9 +183,11 @@ class punchingshear():
         deff = self.slapdepth - self.topcover - sum(maxRebarPerLayer.values())
 
         return deff
+    
+
 
 
 col1 = punchingshear()
-print(col1.effectivedepthcalulator())
+print(col1.show())
 
 print('done')
