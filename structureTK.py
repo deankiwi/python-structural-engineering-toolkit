@@ -150,7 +150,13 @@ class punchingshear():
     def show(self):
         
         fig, ax = plt.subplots()
-        ax.plot([1,5,2],[2,3,4],color="cyan")
+        axes = plt.gca()
+        plt.axis('equal')
+        xmax = self.width + self.slapdepth
+        ymax = self.hight + self.slapdepth
+        axes.set_xlim([-xmax,xmax])
+        axes.set_ylim([-ymax,ymax])
+            
         self.uoutshow(ax)
         ax.add_patch(Rectangle((-self.width/2, -self.hight/2), self.width, self.hight, color="yellow"))
         plt.xlabel("X-AXIS")
@@ -161,9 +167,20 @@ class punchingshear():
     def uoutshow(self, ax):
         d = self.effectivedepthcalulator()
 
-        fov = Wedge((self.width/2,self.hight/2), d, 0, 90, color="r", alpha=0.5)
+        fov1 = Wedge((self.width/2,self.hight/2), d, 0, 90, color="r", alpha=0.5)
+        fov2 = Wedge((-self.width/2,-self.hight/2), d, 180, 270, color="r", alpha=0.5)
+        fov3 = Wedge((-self.width/2,self.hight/2), d, 90, 180, color="r", alpha=0.5)
+        fov4 = Wedge((self.width/2,-self.hight/2), d, -90, 0, color="r", alpha=0.5)
 
-        ax.add_artist(fov)
+        ax.add_patch(Rectangle((-self.width/2, self.hight/2), -d, -self.hight, color="r", alpha=0.5))
+        ax.add_patch(Rectangle((self.width/2, self.hight/2), -self.width, d, color="r", alpha=0.5))
+        ax.add_patch(Rectangle((self.width/2, -self.hight/2), d, self.hight, color="r", alpha=0.5))
+        ax.add_patch(Rectangle((-self.width/2, -self.hight/2), self.width, -d, color="r", alpha=0.5))
+
+        ax.add_artist(fov1)
+        ax.add_artist(fov2)
+        ax.add_artist(fov3)
+        ax.add_artist(fov4)
 
 
     def uout(self):
