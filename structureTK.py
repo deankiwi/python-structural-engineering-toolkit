@@ -138,13 +138,14 @@ def plot_beam_no_links():
 class punchingshear():
 
     def __init__(self):
-        self.width = 200
-        self.hight = 100
+        self.width = 400
+        self.hight = 200
         self.slapdepth = 250
         self.concretegrade = 32
         self.topcover = 30
         self.bottomcover = 30
         self.topreinforcement = [[16,200,0],[16,200,1],[20,200,1]] #[[diameter, spacing, layer]] = layer starts at 0
+        self.openings = [[0, 200, 200, 200], [350,-50,100,100]] #[[x, y, width, height]] 
 
     
     def show(self):
@@ -157,33 +158,72 @@ class punchingshear():
         axes.set_xlim([-xmax,xmax])
         axes.set_ylim([-ymax,ymax])
             
-        self.uoutshow(ax)
+        self.drawuout(ax)
         ax.add_patch(Rectangle((-self.width/2, -self.hight/2), self.width, self.hight, color="yellow"))
         plt.xlabel("X-AXIS")
         plt.ylabel("Y-AXIS")
         plt.title("PLOT-1")
         plt.show()
+
+    def drawopenings(self, ax):
+        for x, y, width, height in self.openings:
+            ax.add_patch(Rectangle((x, y), width, height, color="b"))
+            ax.plot([x, x + width],[y, y + height])
+            ax.plot([x + width, x],[y, y + height])
+
     
-    def uoutshow(self, ax):
-        d = self.effectivedepthcalulator()
+    def drawuout(self, ax):
+        d = self.effectivedepthcalulator()*2
 
-        fov1 = Wedge((self.width/2,self.hight/2), d, 0, 90, color="r", alpha=0.5)
-        fov2 = Wedge((-self.width/2,-self.hight/2), d, 180, 270, color="r", alpha=0.5)
-        fov3 = Wedge((-self.width/2,self.hight/2), d, 90, 180, color="r", alpha=0.5)
-        fov4 = Wedge((self.width/2,-self.hight/2), d, -90, 0, color="r", alpha=0.5)
-
-        ax.add_patch(Rectangle((-self.width/2, self.hight/2), -d, -self.hight, color="r", alpha=0.5))
-        ax.add_patch(Rectangle((self.width/2, self.hight/2), -self.width, d, color="r", alpha=0.5))
-        ax.add_patch(Rectangle((self.width/2, -self.hight/2), d, self.hight, color="r", alpha=0.5))
-        ax.add_patch(Rectangle((-self.width/2, -self.hight/2), self.width, -d, color="r", alpha=0.5))
+        fov1 = Wedge((self.width/2,self.hight/2), d, 0, 90, linewidth = 0, color="r", alpha=0.5)
+        fov2 = Wedge((-self.width/2,-self.hight/2), d, 180, 270, linewidth = 0, color="r", alpha=0.5)
+        fov3 = Wedge((-self.width/2,self.hight/2), d, 90, 180, linewidth = 0, color="r", alpha=0.5)
+        fov4 = Wedge((self.width/2,-self.hight/2), d, -90, 0, linewidth = 0, color="r", alpha=0.5)
 
         ax.add_artist(fov1)
         ax.add_artist(fov2)
         ax.add_artist(fov3)
         ax.add_artist(fov4)
 
+        uoutrect = [
+            [-self.width/2, self.hight/2, -d, -self.hight],
+            [self.width/2, self.hight/2, -self.width, d],
+            [self.width/2, -self.hight/2, d, self.hight],
+            [-self.width/2, -self.hight/2, self.width, -d]
+        ]
+
+        for openx, openy, openwidth, openheight in self.openings:
+            for uoutx, uouty, uoutwidth, uoutheight in uoutrect:
+
+                if (
+                    uoutx + max(0, uoutwidth) < openx + min(0, openwidth) or 
+                    uoutx + min(0, uoutwidth) > openx + max(0, openwidth) or 
+                    uouty + max(0, uoutheight) < openy + min(0, uoutheight) or 
+                    uouty + min(0, uoutheight) > openy + max(0, uoutheight)
+                ):
+                    print('not in square')
+                    continue
+                
+                if not 1:
+                #not - abs(self.width/2) < min(openheight, uoutx + uoutwidth):
+                    #TODO review formular belows to check if negative width and high make it invalid
+                    y = max(min(uouty, uouty + uoutheight), min(openy, openy + openheight))
+                    height =  min(max(uoutx -y, uoutx + uoutheight - y), max(openx - y, openx + openheight - y))
+                    ax.add_patch(Rectangle((uoutx, y), uoutwidth, height, linewidth = 1, color="g"))
+
+
+
+        for x, y, width, height in uoutrect:
+            ax.add_patch(Rectangle((x, y), width, height, linewidth = 0, color="r", alpha=0.5))
+
+
+        self.drawopenings(ax)
+
 
     def uout(self):
+        '''
+        returns uout in mm
+        '''
         pass
         
 
