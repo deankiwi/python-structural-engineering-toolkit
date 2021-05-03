@@ -139,13 +139,13 @@ class punchingshear():
 
     def __init__(self):
         self.width = 400
-        self.hight = 200
+        self.height = 200
         self.slapdepth = 250
         self.concretegrade = 32
         self.topcover = 30
         self.bottomcover = 30
         self.topreinforcement = [[16,200,0],[16,200,1],[20,200,1]] #[[diameter, spacing, layer]] = layer starts at 0
-        self.openings = [[0, 200, 200, 200], [350,-50,100,100]] #[[x, y, width, height]] 
+        self.openings = [[0, 300, 200, 200], [-400,-200, 150, 500]] #[[x, y, width, height]] 
 
     
     def show(self):
@@ -154,12 +154,12 @@ class punchingshear():
         axes = plt.gca()
         plt.axis('equal')
         xmax = self.width + self.slapdepth
-        ymax = self.hight + self.slapdepth
+        ymax = self.height + self.slapdepth
         axes.set_xlim([-xmax,xmax])
         axes.set_ylim([-ymax,ymax])
             
         self.drawuout(ax)
-        ax.add_patch(Rectangle((-self.width/2, -self.hight/2), self.width, self.hight, color="yellow"))
+        ax.add_patch(Rectangle((-self.width/2, -self.height/2), self.width, self.height, color="yellow"))
         plt.xlabel("X-AXIS")
         plt.ylabel("Y-AXIS")
         plt.title("PLOT-1")
@@ -175,22 +175,26 @@ class punchingshear():
     def drawuout(self, ax):
         d = self.effectivedepthcalulator()*2
 
-        fov1 = Wedge((self.width/2,self.hight/2), d, 0, 90, linewidth = 0, color="r", alpha=0.5)
-        fov2 = Wedge((-self.width/2,-self.hight/2), d, 180, 270, linewidth = 0, color="r", alpha=0.5)
-        fov3 = Wedge((-self.width/2,self.hight/2), d, 90, 180, linewidth = 0, color="r", alpha=0.5)
-        fov4 = Wedge((self.width/2,-self.hight/2), d, -90, 0, linewidth = 0, color="r", alpha=0.5)
+        fov1 = Wedge((self.width/2,self.height/2), d, 0, 90, linewidth = 0, color="r", alpha=0.5)
+        fov2 = Wedge((-self.width/2,-self.height/2), d, 180, 270, linewidth = 0, color="r", alpha=0.5)
+        fov3 = Wedge((-self.width/2,self.height/2), d, 90, 180, linewidth = 0, color="r", alpha=0.5)
+        fov4 = Wedge((self.width/2,-self.height/2), d, -90, 0, linewidth = 0, color="r", alpha=0.5)
 
         ax.add_artist(fov1)
         ax.add_artist(fov2)
         ax.add_artist(fov3)
         ax.add_artist(fov4)
 
+            
         uoutrect = [
-            [-self.width/2, self.hight/2, -d, -self.hight],
-            [self.width/2, self.hight/2, -self.width, d],
-            [self.width/2, -self.hight/2, d, self.hight],
-            [-self.width/2, -self.hight/2, self.width, -d]
+            [-self.width/2-d, -self.height/2, d, self.height],
+            [-self.width/2, self.height/2, self.width, d],
+            [self.width/2, -self.height/2, d, self.height],
+            [-self.width/2, -self.height/2-d, self.width, d]
         ]
+
+        for x, y, width, height in uoutrect:
+            ax.add_patch(Rectangle((x, y), width, height, linewidth = 0, color="r", alpha=0.5))
 
         for openx, openy, openwidth, openheight in self.openings:
             for uoutx, uouty, uoutwidth, uoutheight in uoutrect:
@@ -198,23 +202,37 @@ class punchingshear():
                 if (
                     uoutx + max(0, uoutwidth) < openx + min(0, openwidth) or 
                     uoutx + min(0, uoutwidth) > openx + max(0, openwidth) or 
-                    uouty + max(0, uoutheight) < openy + min(0, uoutheight) or 
-                    uouty + min(0, uoutheight) > openy + max(0, uoutheight)
+                    uouty + max(0, uoutheight) < openy + min(0, openheight) or 
+                    uouty + min(0, uoutheight) > openy + max(0, openheight)
                 ):
                     print('not in square')
                     continue
+
+                #now check if the opening is left or right of column
                 
-                if not 1:
-                #not - abs(self.width/2) < min(openheight, uoutx + uoutwidth):
+                if not (abs(openx + openx+ openwidth) < self.width or
+                    abs(openx) < self.width/2 or
+                    abs(openx+ openwidth) < self.width/2
+                ):
+                    #not - abs(self.width/2) < min(openheight, uoutx + uoutwidth):
                     #TODO review formular belows to check if negative width and high make it invalid
                     y = max(min(uouty, uouty + uoutheight), min(openy, openy + openheight))
-                    height =  min(max(uoutx -y, uoutx + uoutheight - y), max(openx - y, openx + openheight - y))
+                    height =  min(max(uouty -y, uouty + uoutheight - y), max(openy - y, openy + openheight - y))
                     ax.add_patch(Rectangle((uoutx, y), uoutwidth, height, linewidth = 1, color="g"))
+                
+                #now check if the opening is above or below
+                if not (abs(openy + openy+ openheight) < self.height or
+                    abs(openy) < self.height/2 or
+                    abs(openy+ openheight) < self.height/2
+                ):
+
+                    x = max(min(uoutx, uoutx + uoutwidth), min(openx, openx + openwidth))
+                    width =  min(max(uoutx -x, uoutx + uoutwidth - x), max(openx - x, openx + openwidth - x))
+                    ax.add_patch(Rectangle((x, uouty), width, uoutheight, linewidth = 1, color="g"))
 
 
 
-        for x, y, width, height in uoutrect:
-            ax.add_patch(Rectangle((x, y), width, height, linewidth = 0, color="r", alpha=0.5))
+
 
 
         self.drawopenings(ax)
