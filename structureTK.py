@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.patches import Wedge
 import numpy as np
+import math
 
 
 def kValue(M,b,d,fck):
@@ -205,7 +206,7 @@ class punchingshear():
                     uouty + max(0, uoutheight) < openy + min(0, openheight) or 
                     uouty + min(0, uoutheight) > openy + max(0, openheight)
                 ):
-                    print('not in square')
+                    #print('not in square')
                     continue
 
                 #now check if the opening is left or right of column
@@ -229,7 +230,45 @@ class punchingshear():
                     x = max(min(uoutx, uoutx + uoutwidth), min(openx, openx + openwidth))
                     width =  min(max(uoutx -x, uoutx + uoutwidth - x), max(openx - x, openx + openwidth - x))
                     ax.add_patch(Rectangle((x, uouty), width, uoutheight, linewidth = 1, color="g"))
+        
+        wedgeszone = [
+            [[self.width/2, self.height/2 + d], [self.width/2 + d, self.height/2]],
+            [[self.width/2 + d, -self.height/2], [self.width/2, -self.height/2 - d]],
+            [[-self.width/2, -self.height/2 - d], [-self.width/2 - d, -self.height/2]],
+            [[-self.width/2 - d, self.height/2], [-self.width/2, self.height/2 + d]]
+        ]
 
+        for wedge in wedgeszone:
+            
+
+            def findangle(x, y):
+                angle = math.atan2(x,y)
+                if angle < 0:
+                    angle = angle + 2*math.pi
+                return angle
+            
+            angle1 = findangle(wedge[0][0], wedge[0][1])
+            angle2 = findangle(wedge[1][0], wedge[1][1])
+
+            for openx, openy, openwidth, openheight in self.openings:
+                openedges = [
+                    [openx, openy],
+                    [openx, openy + openheight],
+                    [openx + openwidth, openy + openheight],
+                    [openx + openwidth, openy]
+                ]
+                hits = []
+               
+                for edgex, edgey in openedges:
+                    openangle = findangle(edgex, edgey)
+                    if angle1 < openangle < angle2:
+                        
+                        print(angle1, openangle, angle2, sep=':\t')
+                    
+                    
+            for spot in wedge:
+                ax.plot([0, spot[0]], [0, spot[1]])
+        
 
 
 
@@ -237,13 +276,11 @@ class punchingshear():
 
         self.drawopenings(ax)
 
-
     def uout(self):
         '''
         returns uout in mm
         '''
         pass
-        
 
     def effectivedepthcalulator(self):
         maxRebarPerLayer = {} # {str(dia), layer}
