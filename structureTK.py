@@ -134,6 +134,12 @@ def plot_beam_no_links():
         
     plt.show()
 
+def findangle(x, y):
+    angle = math.atan2(x,y)
+    if angle < 0:
+        angle = angle + 2*math.pi
+    return angle
+
 
 
 class punchingshear():
@@ -146,7 +152,22 @@ class punchingshear():
         self.topcover = 30
         self.bottomcover = 30
         self.topreinforcement = [[16,200,0],[16,200,1],[20,200,1]] #[[diameter, spacing, layer]] = layer starts at 0
-        self.openings = [[0, 300, 200, 200], [-400,-200, 150, 500]] #[[x, y, width, height]] 
+        self.openings = [
+            [0, -500, 300, 200],
+            [-400,-200, 150, 500],
+            [-230,300,1000,200]] #[[x, y, width, height]] 
+        self.wedges = [
+            [self.width/2, self.height/2, 0, 90],
+            [-self.width/2, self.height/2, 90, 180],
+            [-self.width/2, -self.height/2, 180, 270],
+            [self.width/2, -self.height/2, -90, 0]] #[x,y,angle0, angle1]
+        self.d1 = self.effectivedepthcalulator()*2
+        self.uoutrect = [
+            [-self.width/2-self.d1, -self.height/2, self.d1, self.height],
+            [-self.width/2, self.height/2, self.width, self.d1],
+            [self.width/2, -self.height/2, self.d1, self.height],
+            [-self.width/2, -self.height/2-self.d1, self.width, self.d1]
+        ]
 
     
     def show(self):
@@ -171,34 +192,33 @@ class punchingshear():
             ax.add_patch(Rectangle((x, y), width, height, color="b"))
             ax.plot([x, x + width],[y, y + height])
             ax.plot([x + width, x],[y, y + height])
+    
+    def drawwedge(self, ax):
+        d = self.effectivedepthcalulator()*2
+        #TODO add function that cuts wedges relative to openings
+
+        for x, y, angle0, angle1 in self.wedges:
+            objwedge = Wedge((x,y), d, angle0, angle1, linewidth = 0, color="r", alpha=0.5)
+            ax.add_artist(objwedge)
+    
+    def drawuoutrect(self, ax):
+        #call function that reduces reletive to location of opens
+        for x, y, width, height in self.uoutrect:
+            ax.add_patch(Rectangle((x, y), width, height, linewidth = 0, color="r", alpha=0.5))
+
+
 
     
     def drawuout(self, ax):
         d = self.effectivedepthcalulator()*2
 
-        fov1 = Wedge((self.width/2,self.height/2), d, 0, 90, linewidth = 0, color="r", alpha=0.5)
-        fov2 = Wedge((-self.width/2,-self.height/2), d, 180, 270, linewidth = 0, color="r", alpha=0.5)
-        fov3 = Wedge((-self.width/2,self.height/2), d, 90, 180, linewidth = 0, color="r", alpha=0.5)
-        fov4 = Wedge((self.width/2,-self.height/2), d, -90, 0, linewidth = 0, color="r", alpha=0.5)
+        self.drawwedge(ax)
+        self.drawuoutrect(ax)
+        self.wedgesopenings()
 
-        ax.add_artist(fov1)
-        ax.add_artist(fov2)
-        ax.add_artist(fov3)
-        ax.add_artist(fov4)
-
-            
-        uoutrect = [
-            [-self.width/2-d, -self.height/2, d, self.height],
-            [-self.width/2, self.height/2, self.width, d],
-            [self.width/2, -self.height/2, d, self.height],
-            [-self.width/2, -self.height/2-d, self.width, d]
-        ]
-
-        for x, y, width, height in uoutrect:
-            ax.add_patch(Rectangle((x, y), width, height, linewidth = 0, color="r", alpha=0.5))
-
+        #TODO but for loop below into it's own function
         for openx, openy, openwidth, openheight in self.openings:
-            for uoutx, uouty, uoutwidth, uoutheight in uoutrect:
+            for uoutx, uouty, uoutwidth, uoutheight in self.uoutrect:
 
                 if (
                     uoutx + max(0, uoutwidth) < openx + min(0, openwidth) or 
@@ -241,11 +261,7 @@ class punchingshear():
         for wedge in wedgeszone:
             
 
-            def findangle(x, y):
-                angle = math.atan2(x,y)
-                if angle < 0:
-                    angle = angle + 2*math.pi
-                return angle
+
             
             angle1 = findangle(wedge[0][0], wedge[0][1])
             angle2 = findangle(wedge[1][0], wedge[1][1])
@@ -262,9 +278,11 @@ class punchingshear():
                 for edgex, edgey in openedges:
                     openangle = findangle(edgex, edgey)
                     if angle1 < openangle < angle2:
-                        
-                        print(angle1, openangle, angle2, sep=':\t')
-                    
+                        #TODO if also opening is within wedge add to hit
+                        pass
+                        #print(angle1, openangle, angle2, sep=':\t')
+            #TODO use hits list to find max a min
+
                     
             for spot in wedge:
                 ax.plot([0, spot[0]], [0, spot[1]])
@@ -275,6 +293,91 @@ class punchingshear():
 
 
         self.drawopenings(ax)
+    
+    def isinwedgh(self, wedgex0, wedgey0, wedgex1, wedgey1, wedgex2, wedgey2, x, y):
+        
+        if min( wedgex0, wedgex1, wedgex2) < x < max(wedgex0, wedgex1, wedgex2) and min( wedgey0, wedgey1, wedgey2) < y < max(wedgey0, wedgey1, wedgey2):
+            return True
+    #TODO function that returns True and angle that the zone infringest on
+
+    def wedgesopenings(self):
+        
+        def angleWedgetoMaths(angle):
+            #convert matplotlib wedge angle (0 start East anticlockwises)
+            #to Math angle (0 starts North clock wise)
+            return (90-angle)%360
+        
+        #cutes the wedges relative to the openings
+        newwedge = [] #New list the will replace self.wedge
+        orginalwedge = []
+        for wedgex, wedgey, angle0, angle1 in self.wedges:
+            angle0_, angle1_ = angleWedgetoMaths(angle0), angleWedgetoMaths(angle1)
+            startangle = min(angle0_, angle1_)
+            endangle = max(angle0_, angle1_)
+            if endangle-startangle > 90:
+                #TODO add in function the stops 0 =360 from causing erros
+                startangle, endangle = endangle, startangle + 360
+            orginalwedge.append([startangle, endangle])
+            openangle = [] #create list of all opening max and min angle relative to wedge
+            for openx, openy, openwidth, openheight in self.openings:
+                '''
+                find out the angle of all the points on the opening
+                check to see if the points are within or overlap the wedge
+                the opening can't be > 180° 
+                there for max(angle) - min(angle) we must normalise angle but suptracting 360 of max(angle) 
+                wedge angle is 90 degree of from find angle degree
+                wedge is horizontal
+                findangle in vertical
+                '''
+                openxnorm = openx - wedgex
+                openynorm = openy - wedgey
+                angles = [
+                    findangle(openxnorm, openynorm),
+                    findangle(openxnorm + openwidth, openynorm),
+                    findangle(openxnorm, openynorm + openheight),
+                    findangle(openxnorm + openwidth, openynorm + openheight)
+                ]
+                angles = [math.degrees(ang) for ang in angles]
+
+                    
+                
+                if [x for x in angles if startangle < x < endangle]:
+                    #print(angles, startangle, endangle)
+                    if max(angles) - min(angles) > 180:
+                        #if the opening runs over 0 degree axiels we add 360 to lower angles
+                        angles = [x + 360*(1-x//180) for x in angles if x < 360]
+                    if sum((startangle, endangle)) <= 90:
+                            startangle, endangle = startangle + 360, endangle + 360
+                    print(angles, startangle, endangle)
+                    if max(angles) > endangle:
+                        startangle = max(startangle,min(angles))
+                        print(startangle, endangle)
+                        newwedge.append([startangle%360,endangle%360])
+                        
+
+                        
+                    else:
+                        startangle = min(startangle,max(angles))
+                        endangle = max(angles)
+                        print(startangle, endangle)
+                        newwedge.append([startangle%360,endangle%360])
+            # newwedge.append([startangle%360,endangle%360])
+        print(newwedge, orginalwedge)
+        for openzone in newwedge:
+            for wedges in orginalwedge:
+                if min(wedges):
+                    pass
+        #TODO split the wedges relative to the max and min angles but also check if it is already within angle
+        #TODO ^ this to be done using the newwedge compaired to the orginalwedge list
+        
+        
+            
+
+
+                    
+
+
+
 
     def uout(self):
         '''
