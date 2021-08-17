@@ -362,7 +362,15 @@ class punchingshear():
                         print(startangle, endangle)
                         newwedge.append([startangle%360,endangle%360])
             # newwedge.append([startangle%360,endangle%360])
-        print(newwedge, orginalwedge)
+        print(newwedge, orginalwedge, sep='\n')
+
+        for new_wedge in newwedge:
+            
+
+            pass
+            #TODO have newwedge slice oldwedge 
+
+
         for openzone in newwedge:
             for wedges in orginalwedge:
                 if min(wedges):
